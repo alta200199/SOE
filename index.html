@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Nota Order</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f6ff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .invoice {
+            background: white;
+            max-width: 700px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-top: 6px solid #1E90FF;
+        }
+
+        h2 {
+            text-align: center;
+            color: #1E90FF;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background: #1E90FF;
+            color: white;
+        }
+
+        .btn-print {
+            display: block;
+            margin: 25px auto 0;
+            background: #1E90FF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-print:hover {
+            background: #0d6efd;
+        }
+
+        .notfound {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="invoice" id="invoice">
+        <h2>NOTA ORDER</h2>
+        <div id="orderDetail">Memuat data...</div>
+        <button class="btn-print" onclick="downloadPDF()">Download PDF</button>
+    </div>
+
+    <script>
+        // URL Apps Script Web App Anda
+        const apiUrl = "https://script.google.com/macros/s/AKfycbwDdPPhEUGkhj06pkHRZMfecEElNzefW2XnK8vsf_M_QipO58B-5cSVeIlauRmKzfbf/exec";
+
+        // Ambil parameter dari URL (?id=..., ?ID%20ORDER=..., dll.)
+        const qs = new URLSearchParams(window.location.search);
+        const orderId =
+            qs.get("id") ||
+            qs.get("orderId") ||
+            qs.get("order_id") ||
+            qs.get("ID ORDER") ||
+            qs.get("ID");
+
+        const container = document.getElementById("orderDetail");
+
+        if (!orderId) {
+            container.innerHTML = "<p class='notfound'>❌ ID ORDER tidak ditemukan di URL.</p>";
+        } else {
+            fetch(apiUrl)
+                .then(r => r.json())
+                .then(rows => {
+                    const order = rows.find(o => String(o["ID ORDER"]) === String(orderId));
+                    if (!order) {
+                        container.innerHTML = "<p class='notfound'>❌ Data order tidak ditemukan.</p>";
+                        return;
+                    }
+
+                    container.innerHTML = `
+        <table>
+            <tr><th>ID ORDER</th><td>${order["ID ORDER"]}</td></tr>
+            <tr><th>NAMA CUSTOMER</th><td>${order["NAMA CUSTOMER"]}</td></tr>
+            <tr><th>ARTIKEL UTAMA / SEASEON</th><td>${order["ARTIKEL UTAMA / SEASEON"]}</td></tr>
+            <tr><th>QTY</th><td>${order["QTY"]}</td></tr>
+            <tr><th>TOTAL SETELAH DISCOUNT</th><td>${order["TOTAL SETELAH DISCOUNT"]}</td></tr>
+            <tr><th>TANGGAL ORDER</th><td>${order["TANGGAL ORDER"]}</td></tr>
+        </table>
+        `;
+                })
+                .catch(err => {
+                    console.error(err);
+                    container.innerHTML = "<p class='notfound'>⚠️ Gagal memuat data.</p>";
+                });
+        }
+
+        // Fitur download PDF
+        function downloadPDF() {
+            const element = document.getElementById("invoice");
+            html2pdf().from(element).save(`Nota-${orderId}.pdf`);
+        }
+    </script>
+</body>
+
+</html>
